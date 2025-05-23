@@ -5,18 +5,11 @@ A basic E-commerce Product Management API built with ASP.NET Core Web API and En
 ## 🛠 Technologies
 - ASP.NET Core
 - Entity Framework Core (Code-First)
-- SQL Server or PostgreSQL
+- SQL Server 
 - Swagger UI (for API testing)
 
 ## 🚀 Getting Started
 
-### 📋 Prerequisites
-- [.NET SDK](https://dotnet.microsoft.com/download)
-- SQL Server
-- EF Core Tools (install via NuGet Package Manager Console):
-  ```powershell
-  Install-Package Microsoft.EntityFrameworkCore.Tools
-  ```
 
 ### 📦 Installation
 1. Clone the repository:
