@@ -1,6 +1,5 @@
-@ECommerceProductManagement.Api_HostAddress = http://localhost:5245
+@ECommerceProductManagement.Api_HostAddress = https://localhost:7200
 
-GET {{ECommerceProductManagement.Api_HostAddress}}/weatherforecast/
+GET {{ECommerceProductManagement.Api_HostAddress}}/api/products
 Accept: application/json
-
 ###
