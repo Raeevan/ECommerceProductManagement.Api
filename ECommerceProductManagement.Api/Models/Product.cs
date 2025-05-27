@@ -13,16 +13,9 @@ namespace ECommerceProductManagement.Api.Models
         public decimal Price { get; set; }
         public int StockQuantity { get; set; }
 
-        public ICollection<CategoryProduct> CategoryProducts { get; set; }
-        public ICollection<OrderItem> OrderItems { get; set; }
+        public ICollection<Category> Categories { get; set; } = new List<Category>();
+        public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
     }
-    public class CategoryProduct
-    {
-        public int ProductId { get; set; }
-        public Product Product { get; set; } = default!;
 
-        public int CategoryId { get; set; }
-        public Category Category { get; set; } = default!;
-    }
 
 }

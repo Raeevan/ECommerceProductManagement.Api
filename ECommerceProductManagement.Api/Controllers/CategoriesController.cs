@@ -4,6 +4,7 @@ using System;
 using Microsoft.AspNetCore.Mvc;
 using ECommerceProductManagement.Api.Data;
 using Microsoft.EntityFrameworkCore;
+using ECommerceProductManagement.Api.Interfaces;
 
 namespace ECommerceProductManagement.Api.Controllers
 {
@@ -11,41 +12,37 @@ namespace ECommerceProductManagement.Api.Controllers
     [Route("api/[controller]")]
     public class CategoriesController : ControllerBase
     {
-        private readonly ApplicationDbContext _db;
+        private readonly IGenericRepository<Category> _categoryRepo;
 
-        public CategoriesController(ApplicationDbContext db)
+        public CategoriesController(IGenericRepository<Category> categoryRepo)
         {
-            _db = db;
+            _categoryRepo = categoryRepo;
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<CategoryDTO>>> GetCategories()
         {
-            var categories = await _db.Categories
-                .Select(c => new CategoryDTO
-                {
-                    Id = c.Id,
-                    Name = c.Name,
-                    Description = c.Description
-                }).ToListAsync();
-
-            return Ok(categories);
+            var categories = await _categoryRepo.GetAllAsync();
+            return Ok(categories.Select(c => new CategoryDTO
+            {
+                Id = c.Id,
+                Name = c.Name,
+                Description = c.Description
+            }));
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<CategoryDTO>> GetCategory(int id)
         {
-            var category = await _db.Categories.FindAsync(id);
+            var category = await _categoryRepo.GetByIdAsync(id);
             if (category == null) return NotFound();
 
-            var dto = new CategoryDTO
+            return new CategoryDTO
             {
                 Id = category.Id,
                 Name = category.Name,
                 Description = category.Description
             };
-
-            return Ok(dto);
         }
 
         [HttpPost]
@@ -57,8 +54,7 @@ namespace ECommerceProductManagement.Api.Controllers
                 Description = dto.Description
             };
 
-            _db.Categories.Add(category);
-            await _db.SaveChangesAsync();
+            await _categoryRepo.AddAsync(category);
 
             dto.Id = category.Id;
             return CreatedAtAction(nameof(GetCategory), new { id = category.Id }, dto);
@@ -67,25 +63,25 @@ namespace ECommerceProductManagement.Api.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateCategory(int id, CategoryDTO dto)
         {
-            var category = await _db.Categories.FindAsync(id);
+            if (id != dto.Id) return BadRequest("ID mismatch.");
+
+            var category = await _categoryRepo.GetByIdAsync(id);
             if (category == null) return NotFound();
 
             category.Name = dto.Name;
             category.Description = dto.Description;
 
-            await _db.SaveChangesAsync();
+            await _categoryRepo.UpdateAsync(category);
             return NoContent();
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCategory(int id)
         {
-            var category = await _db.Categories.FindAsync(id);
+            var category = await _categoryRepo.GetByIdAsync(id);
             if (category == null) return NotFound();
 
-            _db.Categories.Remove(category);
-            await _db.SaveChangesAsync();
-
+            await _categoryRepo.DeleteAsync(id);
             return NoContent();
         }
     }

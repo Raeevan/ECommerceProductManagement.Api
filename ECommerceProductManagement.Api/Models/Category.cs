@@ -14,6 +14,6 @@ namespace ECommerceProductManagement.Api.Models
         public string? Description { get; set; }
 
         // Navigation property for many-to-many relationship with Product
-        public ICollection<CategoryProduct> CategoryProducts { get; set; } = new List<CategoryProduct>();
+        public ICollection<Product> Products { get; set; } = new List<Product>();
     }
 }

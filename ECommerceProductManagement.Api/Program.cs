@@ -3,6 +3,8 @@ using ECommerceProductManagement.Api.Models;
 using AutoMapper;
 using System;
 using Microsoft.EntityFrameworkCore;
+using ECommerceProductManagement.Api.Interfaces;
+using ECommerceProductManagement.Api.Repositories;
 namespace ECommerceProductManagement.Api
 {
     public class Program
@@ -16,6 +18,7 @@ namespace ECommerceProductManagement.Api
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 
             // Register DbContext
             builder.Services.AddDbContext<ApplicationDbContext>(options =>

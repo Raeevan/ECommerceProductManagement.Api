@@ -1,9 +1,8 @@
-﻿using ECommerceProductManagement.Api.DTos;
-using ECommerceProductManagement.Api.DTOs;
-using System;
-using Microsoft.AspNetCore.Mvc;
+﻿using ECommerceProductManagement.Api.DTOs;
 using ECommerceProductManagement.Api.Data;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using ECommerceProductManagement.Api.DTos;
 
 namespace ECommerceProductManagement.Api.Controllers
 {
@@ -18,21 +17,22 @@ namespace ECommerceProductManagement.Api.Controllers
             _db = db;
         }
 
-        // 1. Products in a specific category
+        // 1 Get products by category
         [HttpGet("products-by-category/{categoryId}")]
         public async Task<ActionResult<IEnumerable<ProductDTO>>> GetProductsByCategory(int categoryId)
         {
-            var products = await _db.CategoryProducts
-                .Where(cp => cp.CategoryId == categoryId)
-                .Select(cp => new ProductDTO
+            var products = await _db.Products
+                .Where(p => p.Categories.Any(c => c.Id == categoryId))
+                .Select(p => new ProductDTO
                 {
-                    Id = cp.Product.Id,
-                    Name = cp.Product.Name,
-                    Description = cp.Product.Description,
-                    Price = cp.Product.Price,
-                    StockQuantity = cp.Product.StockQuantity,
-                    CategoryIds = cp.Product.CategoryProducts.Select(x => x.CategoryId).ToList()
-                }).ToListAsync();
+                    Id = p.Id,
+                    Name = p.Name,
+                    Description = p.Description,
+                    Price = p.Price,
+                    StockQuantity = p.StockQuantity,
+                    CategoryIds = p.Categories.Select(c => c.Id).ToList()
+                })
+                .ToListAsync();
 
             return Ok(products);
         }
@@ -42,6 +42,7 @@ namespace ECommerceProductManagement.Api.Controllers
         public async Task<ActionResult<IEnumerable<OrderDTO>>> GetRecentOrders()
         {
             var oneMonthAgo = DateTime.UtcNow.AddMonths(-1);
+
             var orders = await _db.Orders
                 .Where(o => o.OrderDate >= oneMonthAgo)
                 .Include(o => o.OrderItems)
@@ -64,7 +65,7 @@ namespace ECommerceProductManagement.Api.Controllers
 
         // 3. Total sales per product
         [HttpGet("sales-by-product")]
-        public async Task<ActionResult> GetTotalSalesByProduct()
+        public async Task<ActionResult<IEnumerable<object>>> GetTotalSalesByProduct()
         {
             var sales = await _db.OrderItems
                 .GroupBy(oi => oi.ProductId)
@@ -79,7 +80,7 @@ namespace ECommerceProductManagement.Api.Controllers
 
         // 4. Top 5 products by sales
         [HttpGet("top-products")]
-        public async Task<ActionResult> GetTopProducts()
+        public async Task<ActionResult<IEnumerable<object>>> GetTopProducts()
         {
             var topProducts = await _db.OrderItems
                 .GroupBy(oi => oi.ProductId)
@@ -88,12 +89,11 @@ namespace ECommerceProductManagement.Api.Controllers
                     ProductId = g.Key,
                     TotalSales = g.Sum(oi => oi.Quantity * oi.UnitPrice)
                 })
-                .OrderByDescending(x => x.TotalSales)
+                .OrderByDescending(p => p.TotalSales)
                 .Take(5)
                 .ToListAsync();
 
             return Ok(topProducts);
         }
     }
-
 }

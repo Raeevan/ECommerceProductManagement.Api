@@ -4,6 +4,7 @@ using System;
 using Microsoft.AspNetCore.Mvc;
 using ECommerceProductManagement.Api.Data;
 using Microsoft.EntityFrameworkCore;
+using ECommerceProductManagement.Api.Interfaces;
 
 namespace ECommerceProductManagement.Api.Controllers
 {
@@ -11,100 +12,108 @@ namespace ECommerceProductManagement.Api.Controllers
     [Route("api/[controller]")]
     public class ProductsController : ControllerBase
     {
-        private readonly ApplicationDbContext _db;
+        private readonly IGenericRepository<Product> _productRepo;
+        private readonly IGenericRepository<Category> _categoryRepo;
 
-        public ProductsController(ApplicationDbContext db)
+        public ProductsController(
+            IGenericRepository<Product> productRepo,
+            IGenericRepository<Category> categoryRepo)
         {
-            _db = db;
+            _productRepo = productRepo;
+            _categoryRepo = categoryRepo;
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ProductDTO>>> GetProducts()
         {
-            var products = await _db.Products
-                .Include(p => p.CategoryProducts)
-                .Select(p => new ProductDTO
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Description = p.Description,
-                    Price = p.Price,
-                    StockQuantity = p.StockQuantity,
-                    CategoryIds = p.CategoryProducts.Select(cp => cp.CategoryId).ToList()
-                }).ToListAsync();
-
-            return Ok(products);
-        }
-
-        [HttpGet("{id}")]
-        public async Task<ActionResult<ProductDTO>> GetProduct(int id)
-        {
-            var product = await _db.Products
-                .Include(p => p.CategoryProducts)
-                .FirstOrDefaultAsync(p => p.Id == id);
-
-            if (product == null) return NotFound();
-
-            var dto = new ProductDTO
+            var products = await _productRepo.GetAllAsync();
+            return products.Select(p => new ProductDTO
             {
-                Id = product.Id,
-                Name = product.Name,
-                Description = product.Description,
-                Price = product.Price,
-                StockQuantity = product.StockQuantity,
-                CategoryIds = product.CategoryProducts.Select(cp => cp.CategoryId).ToList()
-            };
-
-            return Ok(dto);
+                Id = p.Id,
+                Name = p.Name,
+                Description = p.Description,
+                Price = p.Price,
+                StockQuantity = p.StockQuantity,
+                CategoryIds = p.Categories.Select(c => c.Id).ToList()
+            }).ToList();
         }
 
         [HttpPost]
         public async Task<ActionResult<ProductDTO>> CreateProduct(ProductDTO dto)
         {
+            var categories = new List<Category>();
+
+            foreach (var id in dto.CategoryIds)
+            {
+                var category = await _categoryRepo.GetByIdAsync(id);
+                if (category == null)
+                    return BadRequest($"Category ID {id} not found.");
+                categories.Add(category);
+            }
+
             var product = new Product
             {
                 Name = dto.Name,
                 Description = dto.Description,
                 Price = dto.Price,
                 StockQuantity = dto.StockQuantity,
-                CategoryProducts = dto.CategoryIds.Select(cid => new CategoryProduct { CategoryId = cid }).ToList()
+                Categories = categories
             };
 
-            _db.Products.Add(product);
-            await _db.SaveChangesAsync();
+            await _productRepo.AddAsync(product);
 
-            dto.Id = product.Id;
-            return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, dto);
+            return CreatedAtAction(nameof(GetProducts), new { id = product.Id }, new ProductDTO
+            {
+                Id = product.Id,
+                Name = product.Name,
+                Description = product.Description,
+                Price = product.Price,
+                StockQuantity = product.StockQuantity,
+                CategoryIds = categories.Select(c => c.Id).ToList()
+            });
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateProduct(int id, ProductDTO dto)
         {
-            var product = await _db.Products.Include(p => p.CategoryProducts).FirstOrDefaultAsync(p => p.Id == id);
-            if (product == null) return NotFound();
+            if (id != dto.Id)
+                return BadRequest("ID mismatch.");
+
+            var product = await _productRepo.GetByIdAsync(id);
+            if (product == null)
+                return NotFound();
+
+            // Validate and load category references
+            var categories = new List<Category>();
+            foreach (var catId in dto.CategoryIds)
+            {
+                var category = await _categoryRepo.GetByIdAsync(catId);
+                if (category == null)
+                    return BadRequest($"Category ID {catId} not found.");
+                categories.Add(category);
+            }
 
             product.Name = dto.Name;
             product.Description = dto.Description;
             product.Price = dto.Price;
             product.StockQuantity = dto.StockQuantity;
+            product.Categories = categories;
 
-            product.CategoryProducts = dto.CategoryIds.Select(cid => new CategoryProduct { ProductId = id, CategoryId = cid }).ToList();
-
-            await _db.SaveChangesAsync();
+            await _productRepo.UpdateAsync(product);
             return NoContent();
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProduct(int id)
         {
-            var product = await _db.Products.FindAsync(id);
-            if (product == null) return NotFound();
+            var product = await _productRepo.GetByIdAsync(id);
+            if (product == null)
+                return NotFound();
 
-            _db.Products.Remove(product);
-            await _db.SaveChangesAsync();
-
+            await _productRepo.DeleteAsync(id);
             return NoContent();
         }
     }
+
 
 }
