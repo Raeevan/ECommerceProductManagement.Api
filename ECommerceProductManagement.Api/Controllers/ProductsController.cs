@@ -60,9 +60,7 @@ namespace ECommerceProductManagement.Api.Controllers
                 Categories = categories
             };
 
-            await _productRepo.AddAsync(product);
-
-            return CreatedAtAction(nameof(GetProducts), new { id = product.Id }, new ProductDTO
+            var productDto = new ProductDTO
             {
                 Id = product.Id,
                 Name = product.Name,
@@ -70,7 +68,11 @@ namespace ECommerceProductManagement.Api.Controllers
                 Price = product.Price,
                 StockQuantity = product.StockQuantity,
                 CategoryIds = categories.Select(c => c.Id).ToList()
-            });
+            };
+
+            await _productRepo.AddAsync(product);
+
+            return CreatedAtAction(nameof(GetProducts), new { id = product.Id }, productDto);
         }
 
         [HttpPut("{id}")]

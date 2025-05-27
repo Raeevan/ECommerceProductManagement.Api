@@ -32,19 +32,23 @@ namespace ECommerceProductManagement.Api.Controllers
                 .Include(o => o.OrderItems)
                 .ToListAsync();
 
-            return Ok(orders.Select(o => new OrderDTO
+            var orderDtos = orders.Select(order => new OrderDTO
             {
-                Id = o.Id,
-                CustomerName = o.CustomerName,
-                OrderDate = o.OrderDate,
-                OrderItems = o.OrderItems?.Select(oi => new OrderItemDTO
-                {
-                    Id = oi.Id,
-                    ProductId = oi.ProductId,
-                    Quantity = oi.Quantity,
-                    UnitPrice = oi.UnitPrice
-                }).ToList() ?? new List<OrderItemDTO>()
-            }));
+                        Id = order.Id,
+                        CustomerName = order.CustomerName,
+                        OrderDate = order.OrderDate,
+                        OrderItems = order.OrderItems != null
+                    ? order.OrderItems.Select(item => new OrderItemDTO
+                    {
+                        Id = item.Id,
+                        ProductId = item.ProductId,
+                        Quantity = item.Quantity,
+                        UnitPrice = item.UnitPrice
+                    }).ToList()
+                    : new List<OrderItemDTO>()
+             });
+
+            return Ok(orderDtos);
         }
 
         [HttpGet("{id}")]
