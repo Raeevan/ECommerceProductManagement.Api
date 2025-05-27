@@ -80,4 +80,3 @@ Example JSON for creating a product:
 - To reseed, drop the DB and run the app again.
 - For testing in Swagger, use seeded category and product IDs.
 
-*/
